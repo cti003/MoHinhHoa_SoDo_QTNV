@@ -1,0 +1,1160 @@
+<title>BPMN Process Modeling</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+:root{
+  /* ---- layout concept: fixed left rail of section nav (collapses to sticky
+     top tabs on phone) + scrolling content column of cards; every concept,
+     quiz and exercise is a .card; BPMN diagrams render as inline SVG whose
+     element colors follow a fixed Bizagi-style semantic palette that does
+     NOT change with the page theme (diagrams always read like print) ---- */
+  --bg:#f6f5f2; --surface:#ffffff; --surface-2:#eef0ee; --fg:#1b1f1d; --fg-muted:#5b625e;
+  --border:#dcdfdb; --accent:#1f6f5c; --accent-2:#b2542a; --accent-soft:#e3efe9;
+  --success:#1f7a3d; --success-soft:#e3f3e5; --danger:#b3261e; --danger-soft:#fbe5e3;
+  --warning:#8a6d00; --warning-soft:#fdf2cf;
+  --font-head:"Space Grotesk",Inter,system-ui,sans-serif;
+  --font-body:"Inter",system-ui,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,monospace;
+  /* BPMN semantic colors (Bizagi-style) — constant across themes */
+  --bpmn-start-fill:#dcf3cf; --bpmn-start-stroke:#4c9f2f;
+  --bpmn-end-fill:#fbd6d6; --bpmn-end-stroke:#c0392b;
+  --bpmn-task-fill:#d9ecf8; --bpmn-task-stroke:#2e75b6;
+  --bpmn-sub-fill:#cfe6f6; --bpmn-sub-stroke:#1f5c96;
+  --bpmn-gw-fill:#ffefb0; --bpmn-gw-stroke:#c9960c;
+  --bpmn-data-fill:#ffffff; --bpmn-data-stroke:#555555;
+  --bpmn-pool-fill:#f4f4f2; --bpmn-pool-stroke:#9a9a94;
+  --bpmn-lane-fill:#fbfbf9; --bpmn-lane-head:#e7e7e2;
+  --bpmn-text:#17201b; --bpmn-text-vi:#4a564f;
+  --flow-color:#4a4a46; --msg-color:#8a7a5a;
+  --diagram-bg:#fcfbf8; --diagram-border:#ded9cc;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15180f; --surface:#1d2117; --surface-2:#262b1f; --fg:#eef0e6; --fg-muted:#aab2a0;
+    --border:#38402f; --accent:#6fcf9e; --accent-2:#e0a06a; --accent-soft:#223229;
+    --success:#7bd48f; --success-soft:#1d3322; --danger:#f2938c; --danger-soft:#3a2220;
+    --warning:#f0cf63; --warning-soft:#332c10;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15180f; --surface:#1d2117; --surface-2:#262b1f; --fg:#eef0e6; --fg-muted:#aab2a0;
+  --border:#38402f; --accent:#6fcf9e; --accent-2:#e0a06a; --accent-soft:#223229;
+  --success:#7bd48f; --success-soft:#1d3322; --danger:#f2938c; --danger-soft:#3a2220;
+  --warning:#f0cf63; --warning-soft:#332c10;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--bg); color:var(--fg); font-family:var(--font-body);
+  font-size:15px; line-height:1.55;
+  padding-left:max(0px, env(safe-area-inset-left,0px));
+  padding-right:max(0px, env(safe-area-inset-right,0px));
+}
+h1,h2,h3,h4{font-family:var(--font-head); font-weight:600; text-wrap:balance; margin:0 0 .4em}
+a{color:var(--accent)}
+.app{display:flex; min-height:100%}
+.rail{
+  width:248px; flex:none; background:var(--surface); border-right:1px solid var(--border);
+  position:sticky; top:0; align-self:flex-start; height:100vh; overflow-y:auto; padding:18px 14px;
+}
+.rail-title{font-family:var(--font-head); font-size:15px; font-weight:700; margin-bottom:2px}
+.rail-sub{font-size:11.5px; color:var(--fg-muted); margin-bottom:16px}
+.rail nav{display:flex; flex-direction:column; gap:2px}
+.rail button{
+  all:unset; cursor:pointer; padding:9px 10px; border-radius:8px; font-size:13.5px;
+  color:var(--fg-muted); display:flex; align-items:center; gap:8px; line-height:1.3;
+}
+.rail button .n{font-family:var(--font-mono); font-size:11px; color:var(--fg-muted); width:18px; flex:none}
+.rail button:hover{background:var(--surface-2)}
+.rail button.active{background:var(--accent-soft); color:var(--accent); font-weight:600}
+.rail button.active .n{color:var(--accent)}
+.rail-progress{margin-top:18px; padding-top:14px; border-top:1px solid var(--border)}
+.rail-progress-label{font-size:11px; color:var(--fg-muted); display:flex; justify-content:space-between; margin-bottom:6px}
+.bar{height:6px; border-radius:4px; background:var(--surface-2); overflow:hidden}
+.bar>i{display:block; height:100%; background:var(--accent); border-radius:4px; transition:width .3s}
+.topbar{
+  display:none; position:sticky; top:0; z-index:30; background:var(--surface);
+  border-bottom:1px solid var(--border); padding:10px max(16px,env(safe-area-inset-left,0px)) 0 max(16px,env(safe-area-inset-right,0px));
+}
+.topbar-row{display:flex; align-items:center; justify-content:space-between; padding-bottom:8px}
+.topbar-row .rail-title{margin:0}
+.tabs{display:flex; gap:6px; overflow-x:auto; padding-bottom:10px; -webkit-overflow-scrolling:touch}
+.tabs button{all:unset; cursor:pointer; white-space:nowrap; font-size:12.5px; padding:7px 11px; border-radius:999px; background:var(--surface-2); color:var(--fg-muted)}
+.tabs button.active{background:var(--accent); color:#fff}
+main{flex:1; min-width:0}
+.content{max-width:860px; margin:0 auto; padding:34px max(16px,env(safe-area-inset-left,0px)) 80px max(16px,env(safe-area-inset-right,0px))}
+.section-head{margin-bottom:22px}
+.eyebrow{font-family:var(--font-mono); font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--accent); margin-bottom:6px; font-weight:600}
+.section-head h1{font-size:26px}
+.section-sub{color:var(--fg-muted); font-size:14.5px; margin-top:4px}
+.card{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px 22px; margin-bottom:18px}
+.card h3{font-size:16.5px; margin-bottom:10px; display:flex; align-items:center; gap:8px}
+.card h3 .ico{width:22px;height:22px;flex:none}
+.card p{margin:.4em 0}
+.card ul{margin:.3em 0; padding-left:1.25em}
+.card li{margin:.35em 0}
+.vi{color:var(--fg-muted); font-size:.95em}
+.badge{display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:600; letter-spacing:.02em; padding:3px 9px; border-radius:999px; text-transform:uppercase}
+.badge.concept{background:var(--accent-soft); color:var(--accent)}
+.badge.example{background:var(--warning-soft); color:var(--warning)}
+.badge.exercise{background:#e8e2fb; color:#6a4fc4}
+:root[data-theme="dark"] .badge.exercise, @media (prefers-color-scheme:dark){.badge.exercise{background:#2a2440;color:#c6b6f7}}
+.diagram-wrap{background:var(--diagram-bg); border:1px solid var(--diagram-border); border-radius:10px; padding:10px; margin:12px 0; overflow-x:auto}
+.diagram-wrap svg{display:block; margin:0 auto; min-width:560px}
+.legend-toggle{all:unset; cursor:pointer; font-size:12px; color:var(--accent); font-weight:600; display:inline-flex; gap:5px; align-items:center; margin-top:2px}
+.legend{display:none; flex-wrap:wrap; gap:10px 16px; font-size:12px; color:var(--fg-muted); margin-top:10px; padding-top:10px; border-top:1px dashed var(--border)}
+.legend.open{display:flex}
+.legend-item{display:flex; align-items:center; gap:6px}
+.legend-sw{width:16px; height:16px; border-radius:4px; flex:none}
+.quiz{border-left:3px solid var(--accent); padding-left:16px}
+.quiz .q{font-weight:600; margin-bottom:2px}
+.quiz .q .vi{display:block; font-weight:400; margin-top:2px}
+.hint-btn{all:unset; cursor:pointer; font-size:12.5px; color:var(--accent-2); font-weight:600; margin:8px 0 2px; display:inline-flex; align-items:center; gap:5px}
+.hint-box{display:none; background:var(--warning-soft); color:var(--warning); border-radius:8px; padding:8px 12px; font-size:13px; margin:6px 0}
+.hint-box.open{display:block}
+.opt-list{list-style:none; margin:10px 0 0; padding:0; display:flex; flex-direction:column; gap:8px}
+.opt{all:unset; cursor:pointer; display:flex; gap:10px; align-items:flex-start; border:1.5px solid var(--border); border-radius:10px; padding:10px 13px; font-size:13.8px; background:var(--surface)}
+.opt:hover{border-color:var(--accent)}
+.opt .k{font-family:var(--font-mono); font-weight:700; color:var(--fg-muted); flex:none}
+.opt.correct{border-color:var(--success); background:var(--success-soft)}
+.opt.correct .k{color:var(--success)}
+.opt.wrong{border-color:var(--danger); background:var(--danger-soft)}
+.opt.wrong .k{color:var(--danger)}
+.opt.dim{opacity:.55}
+.feedback{display:none; margin-top:10px; border-radius:10px; padding:12px 14px; font-size:13.8px}
+.feedback.open{display:block}
+.feedback.ok{background:var(--success-soft); color:var(--success)}
+.feedback.no{background:var(--danger-soft); color:var(--danger)}
+.feedback b{display:block; margin-bottom:3px; font-size:13px}
+.feedback .exp{color:var(--fg); font-weight:400; margin-top:4px}
+.exercise-scenario{background:var(--surface-2); border-radius:10px; padding:12px 15px; font-size:13.8px; margin-bottom:12px}
+.reveal-btn{all:unset; cursor:pointer; font-size:13px; font-weight:600; color:#fff; background:var(--accent); padding:9px 16px; border-radius:8px; display:inline-block; margin-top:10px}
+.reveal-btn:disabled{opacity:.5; cursor:default}
+.solution{display:none; margin-top:14px; border-top:1px dashed var(--border); padding-top:14px}
+.solution.open{display:block}
+.check-list{display:flex; flex-direction:column; gap:7px; margin:10px 0 0; padding:0; list-style:none}
+.check-list li{display:flex; gap:8px; font-size:13.3px}
+.check-list li::before{content:"✓"; color:var(--success); font-weight:700; flex:none}
+.final-score{font-family:var(--font-mono); font-weight:700}
+footer.credits{text-align:center; color:var(--fg-muted); font-size:12px; padding:30px 16px 50px}
+@media (max-width:860px){
+  .rail{display:none}
+  .topbar{display:block}
+  .content{padding-top:18px}
+}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+
+<div class="app">
+  <aside class="rail" id="rail">
+    <div class="rail-title">BPMN · Process Modeling</div>
+    <div class="rail-sub">Mô hình hóa quy trình với BPMN</div>
+    <nav id="railNav"></nav>
+    <div class="rail-progress">
+      <div class="rail-progress-label"><span>Progress (Tiến độ)</span><span id="progressLabel">0%</span></div>
+      <div class="bar"><i id="progressBar" style="width:0%"></i></div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <div class="topbar-row">
+        <div>
+          <div class="rail-title">BPMN · Process Modeling</div>
+        </div>
+        <div style="font-size:11px;color:var(--fg-muted)"><span id="progressLabelTop">0%</span></div>
+      </div>
+      <div class="tabs" id="tabsNav"></div>
+    </div>
+    <div class="content" id="content"></div>
+    <footer class="credits">Dumas, La Rosa, Mendling &amp; Reijers — <i>Fundamentals of Business Process Management</i>, 2nd ed. (Springer, 2018), Chương 3. Sơ đồ vẽ lại dạng BPMN, tô màu theo quy ước thường gặp trong Bizagi Modeler.</footer>
+  </main>
+</div>
+
+<script>
+/* ============================================================
+   0. SMALL UTILITIES
+   ============================================================ */
+const el = (tag, attrs={}, html) => {
+  const n = document.createElement(tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (html !== undefined) n.innerHTML = html;
+  return n;
+};
+function store(key, val){ try{ if(val===undefined){return JSON.parse(localStorage.getItem(key));} localStorage.setItem(key, JSON.stringify(val)); }catch(e){ return val===undefined? null : undefined; } }
+
+/* ============================================================
+   1. BPMN DIAGRAM ENGINE
+   A tiny recursive flow-layout compiler + SVG renderer.
+   Item kinds: start,end,task,subprocess,dataobject,datastore
+               {branch:[[items],[items],...], gw:'xor'|'and'|'or', condLabels:[]}
+               {loop:[items], exitLabel, repeatLabel}
+   ============================================================ */
+const EVR=16, GWS=36, TW=122, TH=56, GAP=42, ROW=92;
+
+function rowOffsets(n){
+  if(n===1) return [0];
+  if(n===2) return [-ROW/2, ROW/2];
+  if(n===3) return [-ROW, 0, ROW];
+  const out=[]; const span=(n-1)*ROW; for(let i=0;i<n;i++) out.push(-span/2+i*ROW); return out;
+}
+
+function makeNode(id,type,x,y,w,h,label,labelVI,extra){
+  return {id,type,x,y,w:w||( (type==='task'||type==='subprocess')?TW:(type==='datastore'?58:(type==='dataobject'?46:GWS)) ),
+          h:h||( (type==='task'||type==='subprocess')?TH:(type==='datastore'?58:(type==='dataobject'?58:GWS)) ),
+          label:label||'', labelVI:labelVI||'', extra:extra||{}};
+}
+function edge(from,to,label,extra){ return Object.assign({from,to,label:label||''}, extra||{}); }
+
+function layout(items, x0, y, idPrefix){
+  let nodes=[], edges=[], cx=x0, prevId=null, firstId=null, pendingLabel=null;
+  let minY=y, maxY=y, counter=0;
+  for(const item of items){
+    counter++;
+    if(item.branch){
+      const gw='gw_'+item.gw;
+      const sp=makeNode(idPrefix+'s'+counter, gw, cx+GWS/2, y);
+      nodes.push(sp);
+      if(prevId) edges.push(edge(prevId, sp.id, pendingLabel)); pendingLabel=null;
+      const bx = cx+GWS+GAP;
+      const offs = item.rowOffsets || rowOffsets(item.branch.length);
+      let ends=[], firsts=[], lasts=[];
+      item.branch.forEach((sub,i)=>{
+        const subY = y+offs[i];
+        const r = layout(sub, bx, subY, idPrefix+'b'+counter+'_'+i+'_');
+        nodes.push(...r.nodes); edges.push(...r.edges);
+        minY=Math.min(minY,r.minY); maxY=Math.max(maxY,r.maxY,subY);
+        if(r.nodes.length===0){ ends.push(bx); firsts.push(null); lasts.push(null); }
+        else{ ends.push(r.endX); firsts.push(r.firstId); lasts.push(r.lastId);
+              edges.push(edge(sp.id, r.firstId, item.condLabels&&item.condLabels[i])); }
+      });
+      const maxEnd = Math.max(...ends);
+      const jp = makeNode(idPrefix+'j'+counter, gw, maxEnd+GAP+GWS/2, y);
+      nodes.push(jp);
+      lasts.forEach((lid,i)=>{ if(lid) edges.push(edge(lid, jp.id)); else edges.push(edge(sp.id, jp.id, item.condLabels&&item.condLabels[i])); });
+      prevId = jp.id; if(!firstId) firstId=sp.id;
+      cx = jp.x + GWS/2 + GAP;
+    } else if(item.loop){
+      const mg = makeNode(idPrefix+'m'+counter,'gw_xor', cx+GWS/2, y);
+      nodes.push(mg);
+      if(prevId) edges.push(edge(prevId, mg.id, pendingLabel)); pendingLabel=null;
+      const bx = cx+GWS+GAP;
+      const body = layout(item.loop, bx, y, idPrefix+'lp'+counter+'_');
+      nodes.push(...body.nodes); edges.push(...body.edges);
+      edges.push(edge(mg.id, body.firstId));
+      minY=Math.min(minY, body.minY); maxY=Math.max(maxY, body.maxY);
+      const sx = body.endX + GAP + GWS/2;
+      const sp = makeNode(idPrefix+'ls'+counter,'gw_xor', sx, y);
+      nodes.push(sp);
+      edges.push(edge(body.lastId, sp.id));
+      const loopY = y + 82;
+      edges.push(edge(sp.id, mg.id, item.repeatLabel, {loopBack:true, loopY}));
+      maxY = Math.max(maxY, loopY+22);
+      prevId = sp.id; if(!firstId) firstId = mg.id;
+      pendingLabel = item.exitLabel;
+      cx = sp.x + GWS/2 + GAP;
+    } else {
+      const node = makeNode(idPrefix+'n'+counter, item.type, cx, y, item.w, item.h, item.label, item.labelVI, item.extra);
+      node.x = cx + node.w/2;
+      nodes.push(node);
+      if(prevId){ edges.push(edge(prevId, node.id, pendingLabel)); pendingLabel=null; }
+      prevId = node.id; if(!firstId) firstId = node.id;
+      cx += node.w + GAP;
+      minY=Math.min(minY,y); maxY=Math.max(maxY,y);
+    }
+  }
+  return {nodes, edges, endX: cx-GAP, firstId, lastId: prevId, minY, maxY, pendingLabel};
+}
+
+function edgePoint(n, dir){
+  // dir: approximate direction ('r','l') just for horizontal connections we use most
+  const halfw = n.w/2, halfh=n.h/2;
+  if(n.type==='task'||n.type==='subprocess') return {r:{x:n.x+halfw,y:n.y}, l:{x:n.x-halfw,y:n.y}, t:{x:n.x,y:n.y-halfh}, b:{x:n.x,y:n.y+halfh}};
+  if(n.type==='dataobject') return {r:{x:n.x+halfw,y:n.y}, l:{x:n.x-halfw,y:n.y}, t:{x:n.x,y:n.y-halfh}, b:{x:n.x,y:n.y+halfh}};
+  // circle/diamond-ish: use radius
+  const r = n.w/2;
+  return {r:{x:n.x+r,y:n.y}, l:{x:n.x-r,y:n.y}, t:{x:n.x,y:n.y-r}, b:{x:n.x,y:n.y+r}};
+}
+
+function shapeSVG(n){
+  const label = n.label ? `<div style="font:600 11.5px/1.25 Inter,sans-serif;color:var(--bpmn-text)">${n.label}</div>` : '';
+  const vi = n.labelVI ? `<div style="font:italic 10px/1.2 Inter,sans-serif;color:var(--bpmn-text-vi);margin-top:2px">${n.labelVI}</div>` : '';
+  const capLabel = (yOff) => n.label ? `<foreignObject x="${n.x-70}" y="${n.y+yOff}" width="140" height="44"><div xmlns="http://www.w3.org/1999/xhtml" style="text-align:center">${label}${vi}</div></foreignObject>` : '';
+  switch(n.type){
+    case 'start':
+      return `<circle cx="${n.x}" cy="${n.y}" r="${EVR}" style="fill:var(--bpmn-start-fill);stroke:var(--bpmn-start-stroke);stroke-width:2.2"/>${capLabel(EVR+6)}`;
+    case 'end':
+      return `<circle cx="${n.x}" cy="${n.y}" r="${EVR}" style="fill:var(--bpmn-end-fill);stroke:var(--bpmn-end-stroke);stroke-width:4"/>${capLabel(EVR+6)}`;
+    case 'msgstart':
+      return `<circle cx="${n.x}" cy="${n.y}" r="${EVR}" style="fill:var(--bpmn-start-fill);stroke:var(--bpmn-start-stroke);stroke-width:2.2"/>
+              <rect x="${n.x-8}" y="${n.y-5.5}" width="16" height="11" rx="1" style="fill:none;stroke:var(--bpmn-start-stroke);stroke-width:1.3"/>
+              <path d="M${n.x-8} ${n.y-5.5} L${n.x} ${n.y+1.5} L${n.x+8} ${n.y-5.5}" style="fill:none;stroke:var(--bpmn-start-stroke);stroke-width:1.3"/>
+              ${capLabel(EVR+6)}`;
+    case 'task': {
+      const x=n.x-n.w/2, y=n.y-n.h/2;
+      return `<rect x="${x}" y="${y}" width="${n.w}" height="${n.h}" rx="9" style="fill:var(--bpmn-task-fill);stroke:var(--bpmn-task-stroke);stroke-width:1.8"/>
+              <foreignObject x="${x+6}" y="${y+4}" width="${n.w-12}" height="${n.h-8}"><div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center">${label}${vi}</div></foreignObject>`;
+    }
+    case 'subprocess': {
+      const x=n.x-n.w/2, y=n.y-n.h/2;
+      return `<rect x="${x}" y="${y}" width="${n.w}" height="${n.h}" rx="9" style="fill:var(--bpmn-sub-fill);stroke:var(--bpmn-sub-stroke);stroke-width:1.8"/>
+              <foreignObject x="${x+6}" y="${y+4}" width="${n.w-12}" height="${n.h-16}"><div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center">${label}${vi}</div></foreignObject>
+              <rect x="${n.x-8}" y="${y+n.h-13}" width="16" height="12" rx="2" style="fill:#fff;stroke:var(--bpmn-sub-stroke);stroke-width:1.2"/>
+              <line x1="${n.x-5}" y1="${y+n.h-7}" x2="${n.x+5}" y2="${y+n.h-7}" style="stroke:var(--bpmn-sub-stroke);stroke-width:1.3"/>
+              <line x1="${n.x}" y1="${y+n.h-10}" x2="${n.x}" y2="${y+n.h-4}" style="stroke:var(--bpmn-sub-stroke);stroke-width:1.3"/>`;
+    }
+    case 'gw_xor': case 'gw_and': case 'gw_or': {
+      const r=GWS/2;
+      const pts=`${n.x},${n.y-r} ${n.x+r},${n.y} ${n.x},${n.y+r} ${n.x-r},${n.y}`;
+      let mark='';
+      if(n.type==='gw_xor') mark=`<path d="M${n.x-7} ${n.y-7} L${n.x+7} ${n.y+7} M${n.x+7} ${n.y-7} L${n.x-7} ${n.y+7}" style="stroke:var(--bpmn-gw-stroke);stroke-width:2.4"/>`;
+      if(n.type==='gw_and') mark=`<path d="M${n.x} ${n.y-8} V${n.y+8} M${n.x-8} ${n.y} H${n.x+8}" style="stroke:var(--bpmn-gw-stroke);stroke-width:2.4"/>`;
+      if(n.type==='gw_or') mark=`<circle cx="${n.x}" cy="${n.y}" r="7" style="fill:none;stroke:var(--bpmn-gw-stroke);stroke-width:2.2"/>`;
+      return `<polygon points="${pts}" style="fill:var(--bpmn-gw-fill);stroke:var(--bpmn-gw-stroke);stroke-width:2"/>${mark}${capLabel(r+8)}`;
+    }
+    case 'dataobject': {
+      const x=n.x-n.w/2, y=n.y-n.h/2, w=n.w,h=n.h,fold=10;
+      return `<path d="M${x} ${y} H${x+w-fold} L${x+w} ${y+fold} V${y+h} H${x} Z" style="fill:var(--bpmn-data-fill);stroke:var(--bpmn-data-stroke);stroke-width:1.4"/>
+              <path d="M${x+w-fold} ${y} V${y+fold} H${x+w}" style="fill:none;stroke:var(--bpmn-data-stroke);stroke-width:1.2"/>
+              <line x1="${x+6}" y1="${y+h-16}" x2="${x+w-6}" y2="${y+h-16}" style="stroke:var(--bpmn-data-stroke);stroke-width:1"/>
+              <line x1="${x+6}" y1="${y+h-10}" x2="${x+w-10}" y2="${y+h-10}" style="stroke:var(--bpmn-data-stroke);stroke-width:1"/>
+              ${capLabel(n.h/2+6)}`;
+    }
+    case 'datastore': {
+      const x=n.x-n.w/2, y=n.y-n.h/2, w=n.w,h=n.h,ell=8;
+      return `<path d="M${x} ${y+ell} V${y+h-ell} A${w/2} ${ell} 0 0 0 ${x+w} ${y+h-ell} V${y+ell}" style="fill:var(--bpmn-data-fill);stroke:var(--bpmn-data-stroke);stroke-width:1.4"/>
+              <ellipse cx="${n.x}" cy="${y+ell}" rx="${w/2}" ry="${ell}" style="fill:var(--bpmn-data-fill);stroke:var(--bpmn-data-stroke);stroke-width:1.4"/>
+              ${capLabel(n.h/2+6)}`;
+    }
+    default: return '';
+  }
+}
+
+function edgesSVG(nodes, edges, uid){
+  const byId={}; nodes.forEach(n=>byId[n.id]=n);
+  let out='';
+  edges.forEach((e,i)=>{
+    const a=byId[e.from], b=byId[e.to]; if(!a||!b) return;
+    const msg = e.msg;
+    const marker = msg? `url(#amsg-${uid})` : `url(#aseq-${uid})`;
+    const dash = msg? 'stroke-dasharray="5 4"' : '';
+    const color = msg? 'var(--msg-color)' : 'var(--flow-color)';
+    let d;
+    if(e.loopBack){
+      const pa=edgePoint(a,'b').b, pb=edgePoint(b,'b').b;
+      d=`M${pa.x} ${pa.y} V${e.loopY} H${pb.x} V${pb.y}`;
+      out+=`<path d="${d}" style="fill:none;stroke:${color};stroke-width:1.7" marker-end="${marker}" ${dash}/>`;
+      if(e.label) out+=`<foreignObject x="${(pa.x+pb.x)/2-60}" y="${e.loopY-19}" width="120" height="20"><div xmlns="http://www.w3.org/1999/xhtml" style="text-align:center;font:600 10.5px Inter,sans-serif;color:var(--bpmn-text-vi);background:var(--diagram-bg);display:inline-block;padding:0 4px;margin:0 auto">${e.label}</div></foreignObject>`;
+      return;
+    }
+    const pa = a.y===b.y ? edgePoint(a,'r').r : (a.y<b.y? edgePoint(a,'b').b : edgePoint(a,'t').t);
+    const pb = a.y===b.y ? edgePoint(b,'l').l : edgePoint(b,'l').l;
+    if(a.y===b.y){
+      d=`M${pa.x} ${pa.y} H${pb.x}`;
+    } else {
+      const midx=(pa.x+pb.x)/2;
+      d=`M${pa.x} ${pa.y} H${midx} V${b.y} H${pb.x}`;
+    }
+    out+=`<path d="${d}" style="fill:none;stroke:${color};stroke-width:1.7" marker-end="${marker}" ${dash}/>`;
+    if(e.label){
+      const lx = a.y===b.y ? (pa.x+pb.x)/2 : (pa.x+ (pa.y<pb.y? pb.x:pb.x))/2 ;
+      const ly = a.y===b.y ? pa.y-13 : (pa.y+b.y)/2 - (a.y<b.y?6:-6);
+      out+=`<foreignObject x="${lx-62}" y="${ly-11}" width="124" height="20"><div xmlns="http://www.w3.org/1999/xhtml" style="text-align:center;font:600 10.5px Inter,sans-serif;color:var(--bpmn-text-vi);background:var(--diagram-bg);display:inline-block;padding:0 4px">${e.label}</div></foreignObject>`;
+    }
+  });
+  return out;
+}
+
+function composeRows(rows, idPrefix){
+  // rows: [{items, y}], laid out left-to-right, each row continuing the x
+  // cursor from the previous row and connected to it by an edge.
+  let nodes=[], edges=[], x=80, prevLast=null, firstId=null, minY=Infinity, maxY=-Infinity;
+  rows.forEach((row,i)=>{
+    const r = layout(row.items, x, row.y, idPrefix+'row'+i+'_');
+    nodes.push(...r.nodes); edges.push(...r.edges);
+    if(prevLast) edges.push(edge(prevLast, r.firstId));
+    prevLast = r.lastId; if(!firstId) firstId = r.firstId;
+    x = r.endX + GAP;
+    minY = Math.min(minY, r.minY); maxY = Math.max(maxY, r.maxY);
+  });
+  return {nodes, edges, endX:x-GAP, firstId, lastId:prevLast, minY, maxY};
+}
+
+function renderDiagram(spec){
+  const uid = 'd'+Math.random().toString(36).slice(2,8);
+  const r = spec.rows ? composeRows(spec.rows, 'r_') : layout(spec.items, 80, (spec.mainY!==undefined?spec.mainY:90), 'r_');
+  let laneSVG='';
+  const minY = Math.min(r.minY, ...(spec.lanes? spec.lanes.map(l=>l.yTop):[r.minY]));
+  const maxY = Math.max(r.maxY, ...(spec.lanes? spec.lanes.map(l=>l.yBottom):[r.maxY]));
+  const W = r.endX + 40, H = (maxY-minY) + 60;
+  const padTop = 30 - minY;
+  if(spec.lanes){
+    spec.lanes.forEach((l,i)=>{
+      laneSVG += `<rect x="4" y="${l.yTop+padTop}" width="${W-8}" height="${l.yBottom-l.yTop}" style="fill:${i%2?'var(--bpmn-lane-fill)':'var(--bpmn-pool-fill)'};stroke:var(--bpmn-pool-stroke);stroke-width:1"/>
+                  <foreignObject x="8" y="${l.yTop+padTop+3}" width="230" height="30"><div xmlns="http://www.w3.org/1999/xhtml" style="font:700 9.5px/1.25 Inter,sans-serif;color:var(--bpmn-text-vi)">${l.label}</div></foreignObject>`;
+    });
+  }
+  const shiftedNodes = r.nodes.map(n=>Object.assign({},n,{y:n.y+padTop}));
+  const shiftedEdges = r.edges.map(e=>Object.assign({},e, e.loopBack?{loopY:e.loopY+padTop}:{}));
+  const idMap={}; shiftedNodes.forEach(n=>idMap[n.id]=n);
+  let extraMsg='';
+  if(spec.messageFlows){
+    spec.messageFlows.forEach(mf=>{
+      const a=mf.fromXY, b=idMap[mf.to];
+      if(!b) return;
+      const by = edgePoint(b,'t').t;
+      extraMsg += `<path d="M${a.x} ${a.y} V${by.y-18} H${by.x} V${by.y}" style="fill:none;stroke:var(--msg-color);stroke-width:1.6" stroke-dasharray="5 4" marker-end="url(#amsg-${uid})"/>`;
+      if(mf.label) extraMsg += `<foreignObject x="${a.x-55}" y="${(a.y+by.y)/2-28}" width="110" height="30"><div xmlns="http://www.w3.org/1999/xhtml" style="text-align:center;font:600 10px Inter,sans-serif;color:var(--msg-color)">${mf.label}</div></foreignObject>`;
+    });
+  }
+  const nodesMarkup = shiftedNodes.map(shapeSVG).join('');
+  const edgesMarkup = edgesSVG(shiftedNodes, shiftedEdges, uid);
+  const svg = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="aseq-${uid}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" style="fill:var(--flow-color)"/></marker>
+      <marker id="amsg-${uid}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" style="fill:var(--msg-color)"/></marker>
+    </defs>
+    ${laneSVG}${edgesMarkup}${extraMsg}${nodesMarkup}
+  </svg>`;
+  const wrap = el('div',{class:'diagram-wrap'});
+  wrap.innerHTML = svg;
+  return wrap;
+}
+
+const LEGEND_ITEMS = [
+  ['var(--bpmn-start-fill)','Start event (Sự kiện bắt đầu)'],
+  ['var(--bpmn-end-fill)','End event (Sự kiện kết thúc)'],
+  ['var(--bpmn-task-fill)','Task / Activity (Hoạt động)'],
+  ['var(--bpmn-sub-fill)','Sub-process (Quy trình con)'],
+  ['var(--bpmn-gw-fill)','Gateway — X=XOR, +=AND, O=OR (Cổng)'],
+  ['var(--bpmn-data-fill)','Data object / store (Đối tượng/kho dữ liệu)'],
+  ['var(--bpmn-pool-fill)','Pool / Lane (Bể / Làn)'],
+];
+function legendBlock(){
+  const wrap = el('div');
+  const btn = el('button',{class:'legend-toggle'}, '🎨 Diagram color key (Chú giải màu sắc BPMN)');
+  const leg = el('div',{class:'legend'});
+  LEGEND_ITEMS.forEach(([c,t])=>{
+    const it = el('div',{class:'legend-item'});
+    it.appendChild(el('span',{class:'legend-sw', style:`background:${c};border:1px solid var(--border)`}));
+    it.appendChild(el('span',{},t));
+    leg.appendChild(it);
+  });
+  btn.onclick=()=>leg.classList.toggle('open');
+  wrap.appendChild(btn); wrap.appendChild(leg);
+  return wrap;
+}
+
+/* ============================================================
+   2. QUIZ & EXERCISE COMPONENTS
+   ============================================================ */
+let QUIZ_REGISTRY = new Set();
+
+function quizBlock(spec){
+  const storageKey = 'q_'+spec.id;
+  QUIZ_REGISTRY.add(storageKey);
+  const saved = store(storageKey);
+  const wrap = el('div',{class:'quiz'});
+  wrap.appendChild(el('div',{class:'q'}, spec.q + (spec.qvi?`<span class="vi">${spec.qvi}</span>`:'')));
+  let hintBtn=null, hintBox=null;
+  if(spec.hint){
+    hintBtn = el('button',{class:'hint-btn'}, '💡 Hint (Gợi ý)');
+    hintBox = el('div',{class:'hint-box'}, spec.hint);
+    hintBtn.onclick=()=>{ hintBox.classList.toggle('open'); };
+    wrap.appendChild(hintBtn); wrap.appendChild(hintBox);
+  }
+  const list = el('ul',{class:'opt-list'});
+  const fb = el('div',{class:'feedback'});
+  const letters='ABCD';
+  const buttons=[];
+  spec.options.forEach((opt,i)=>{
+    const li = el('li');
+    const b = el('button',{class:'opt'});
+    b.appendChild(el('span',{class:'k'},letters[i]));
+    b.appendChild(el('span',{},opt.t));
+    b.onclick=()=>{
+      buttons.forEach(x=>x.classList.remove('correct','wrong'));
+      spec.options.forEach((o,j)=>{ if(o.correct) buttons[j].classList.add('correct'); });
+      if(!opt.correct) b.classList.add('wrong');
+      fb.className='feedback open '+(opt.correct?'ok':'no');
+      fb.innerHTML = `<b>${opt.correct? '✓ Correct! (Chính xác!)' : '✗ Not quite (Chưa đúng)'}</b><span class="exp">${spec.explain}</span>`;
+      store(storageKey, opt.correct);
+      updateProgress();
+    };
+    buttons.push(b);
+    li.appendChild(b); list.appendChild(li);
+  });
+  wrap.appendChild(list); wrap.appendChild(fb);
+  if(saved===true){
+    spec.options.forEach((o,j)=>{ if(o.correct) buttons[j].classList.add('correct'); });
+    fb.className='feedback open ok';
+    fb.innerHTML = `<b>✓ Correct! (Chính xác!)</b><span class="exp">${spec.explain}</span>`;
+  }
+  return wrap;
+}
+
+function exerciseBlock(spec){
+  const revealKey = 'exrev_'+spec.id;
+  QUIZ_REGISTRY.add(revealKey);
+  const saved = store(revealKey);
+  const wrap = el('div');
+  wrap.appendChild(el('div',{class:'exercise-scenario'}, spec.scenario));
+  const qBlock = quizBlock({id:'ex_'+spec.id, q:spec.q, qvi:spec.qvi, hint:spec.hint, options:spec.options, explain:spec.explain});
+  wrap.appendChild(qBlock);
+  const btn = el('button',{class:'reveal-btn'}, 'Show solution diagram (Xem sơ đồ lời giải)');
+  const sol = el('div',{class:'solution'});
+  sol.appendChild(el('h4',{},'Solution (Lời giải)'));
+  sol.appendChild(renderDiagram(spec.diagram));
+  if(spec.checks){
+    const cl = el('ul',{class:'check-list'});
+    spec.checks.forEach(c=>cl.appendChild(el('li',{},c)));
+    sol.appendChild(cl);
+  }
+  btn.onclick=()=>{ sol.classList.toggle('open'); store(revealKey, true); updateProgress(); };
+  wrap.appendChild(btn); wrap.appendChild(sol);
+  if(saved) sol.classList.add('open');
+  return wrap;
+}
+
+function updateProgress(){
+  const total = QUIZ_REGISTRY.size;
+  let done=0;
+  QUIZ_REGISTRY.forEach(key=>{ if(store(key)!==null) done++; });
+  const pct = total? Math.round(done/total*100):0;
+  document.getElementById('progressBar').style.width=pct+'%';
+  document.getElementById('progressLabel').textContent=pct+'% ('+done+'/'+total+')';
+  document.getElementById('progressLabelTop').textContent=pct+'%';
+}
+
+/* ============================================================
+   3. CONTENT HELPERS
+   ============================================================ */
+function card(badge,title,bodyHTML){
+  const c = el('div',{class:'card'});
+  const h = el('h3');
+  if(badge) h.appendChild(el('span',{class:'badge '+badge.cls}, badge.text));
+  h.appendChild(document.createTextNode(title));
+  c.appendChild(h);
+  const body = el('div'); body.innerHTML = bodyHTML;
+  c.appendChild(body);
+  return c;
+}
+function diagramCard(badge,title,descHTML,diagramSpec){
+  const c = card(badge,title,descHTML);
+  c.appendChild(renderDiagram(diagramSpec));
+  c.appendChild(legendBlock());
+  return c;
+}
+
+/* ============================================================
+   4. CONTENT DATA
+   ============================================================ */
+const SECTIONS = [];
+
+/* ---------- INTRO ---------- */
+SECTIONS.push({ id:'intro', label:'Overview', labelVI:'Tổng quan', build(container){
+  container.appendChild(card(null,'Essential Process Modeling with BPMN', `
+    <p><span class="vi">Mô hình hóa quy trình cốt lõi với BPMN</span></p>
+    <p>This interactive lesson follows <b>Dumas, La Rosa, Mendling &amp; Reijers — <i>Fundamentals of Business Process Management</i></b> (2nd ed., Springer, 2018), Chapter 3. By the end you will be able to read and draw BPMN events, activities, sequence flows, gateways, data objects, resources, pools/lanes and sub-processes — and apply them to realistic business scenarios.</p>
+    <p class="vi">Bài học này bám theo Chương 3 của giáo trình Dumas và cộng sự (2018). Sau bài học, bạn có thể đọc và vẽ các yếu tố BPMN: sự kiện, hoạt động, luồng tuần tự, cổng (gateway), đối tượng dữ liệu, nguồn lực, bể/làn và quy trình con.</p>
+  `));
+  container.appendChild(card({cls:'concept',text:'Concept'}, 'Where we are in the BPM lifecycle (Vòng đời BPM)', `
+    <p>Process identification (nhận diện quy trình) → <b>Process discovery (khám phá quy trình)</b> → Process analysis (phân tích) → Process redesign (tái thiết kế) → Process implementation (triển khai) → Process monitoring (giám sát).</p>
+    <p>This lesson sits in the <b>discovery</b> phase: learning the modeling language (BPMN) used to produce <i>as-is</i> process models (mô hình quy trình hiện trạng).</p>
+  `));
+  container.appendChild(quizBlock({
+    id:'intro_lifecycle', q:'Which BPM lifecycle phase produces the as-is process model?',
+    qvi:'Giai đoạn nào của vòng đời BPM tạo ra mô hình quy trình hiện trạng?',
+    hint:'It is the second phase, right after identification.',
+    options:[
+      {t:'Process identification (Nhận diện quy trình)', correct:false},
+      {t:'Process discovery (Khám phá quy trình)', correct:true},
+      {t:'Process redesign (Tái thiết kế quy trình)', correct:false},
+      {t:'Process monitoring (Giám sát quy trình)', correct:false},
+    ],
+    explain:'Process discovery (giai đoạn 2) ghi lại hiện trạng (as-is) của từng quy trình liên quan — kết quả là một hay nhiều mô hình quy trình hiện trạng, nền tảng cho mọi giai đoạn sau.'
+  }));
+}});
+
+/* ---------- PART 1 ---------- */
+SECTIONS.push({ id:'part1', label:'Part 1 · Why model?', labelVI:'Phần 1 · Vì sao mô hình hóa', build(container){
+  container.appendChild(card({cls:'concept',text:'Concept'}, 'What is a business process? (Quy trình nghiệp vụ là gì?)', `
+    <p>A business process is a collection of inter-related <b>events</b> (sự kiện), <b>activities</b> (hoạt động) and <b>decision points</b> (điểm quyết định) that involve a number of <b>actors</b> (tác nhân) and <b>objects</b> (đối tượng), and that collectively lead to an <b>outcome</b> (kết quả) of value to at least one customer.</p>
+    <ul>
+      <li><b>Event</b> — occurs instantaneously <span class="vi">(xảy ra tức thời, không kéo dài)</span>: e.g. "equipment has arrived on site".</li>
+      <li><b>Activity / task</b> — work that takes time <span class="vi">(công việc cần thời gian)</span>; a task is one unit of work.</li>
+      <li><b>Decision point</b> — a decision that affects how the process is performed <span class="vi">(ảnh hưởng đến cách thực hiện quy trình)</span>.</li>
+      <li><b>Outcome</b> — positive (adds value) or negative <span class="vi">(tích cực hoặc tiêu cực)</span>.</li>
+    </ul>
+  `));
+  container.appendChild(card({cls:'concept',text:'Concept'}, 'Why model a process? (Vì sao cần mô hình hóa?)', `
+    <p>"All models are wrong, but some are useful." — George E. P. Box <span class="vi">(mọi mô hình đều sai, nhưng một số vẫn hữu ích)</span>.</p>
+    <ul>
+      <li>To <b>understand</b> the process <span class="vi">(để hiểu quy trình)</span> — participants usually only see their own slice of it.</li>
+      <li>To <b>share</b> that understanding <span class="vi">(để chia sẻ sự hiểu biết)</span> among stakeholders, helping spot and prevent problems.</li>
+      <li>As the <b>foundation</b> for analysis, redesign and automation <span class="vi">(nền tảng cho phân tích, tái thiết kế, tự động hóa)</span>.</li>
+    </ul>
+    <p><b>Mapping, abstraction, purpose</b> <span class="vi">(ánh xạ, trừu tượng hóa, mục đích)</span>: a model maps a real phenomenon; it abstracts away irrelevant details; and its <i>purpose</i> decides what is relevant. A wooden building model shows shape for a buyer, but omits the wiring an electrician needs.</p>
+  `));
+  container.appendChild(quizBlock({
+    id:'p1_purpose', q:'A process analyst is drafting a model purely to help stakeholders agree on how the "order-to-cash" process currently works, with no IT implementation details. What kind of model is this?',
+    qvi:'Một chuyên viên phân tích vẽ mô hình chỉ để các bên liên quan thống nhất về cách quy trình order-to-cash hiện đang vận hành, không có chi tiết CNTT. Đây là loại mô hình nào?',
+    hint:'Compare: conceptual model (for people) vs. executable model (for systems).',
+    options:[
+      {t:'Conceptual model, for organizational design (Mô hình khái niệm, phục vụ thiết kế tổ chức)', correct:true},
+      {t:'Executable model, for application design (Mô hình thực thi, phục vụ thiết kế hệ thống)', correct:false},
+      {t:'A BPMS deployment package (Gói triển khai BPMS)', correct:false},
+      {t:'A database schema (Lược đồ cơ sở dữ liệu)', correct:false},
+    ],
+    explain:'Mô hình không có chi tiết CNTT (kiểu dữ liệu, giao diện hệ thống) và dành cho người đọc là quản lý/chuyên viên phân tích/người tham gia quy trình chính là mô hình khái niệm — mục đích thiết kế tổ chức, không phải thiết kế hệ thống.'
+  }));
+}});
+
+/* ---------- PART 2 ---------- */
+SECTIONS.push({ id:'part2', label:'Part 2 · First steps with BPMN', labelVI:'Phần 2 · Nhập môn BPMN', build(container){
+  container.appendChild(card({cls:'concept',text:'Concept'}, 'Three basic concepts (Ba khái niệm cơ bản)', `
+    <ul>
+      <li><b>Start event</b> <span class="vi">(sự kiện bắt đầu)</span> — thin-bordered circle: when process instances begin.</li>
+      <li><b>End event</b> <span class="vi">(sự kiện kết thúc)</span> — thick-bordered circle: when instances complete.</li>
+      <li><b>Activity</b> <span class="vi">(hoạt động)</span> — rounded rectangle: a unit of work with duration, e.g. "Pay invoice".</li>
+      <li><b>Sequence flow</b> <span class="vi">(luồng tuần tự)</span> — solid arrow: one event/activity is followed by another.</li>
+    </ul>
+  `));
+  container.appendChild(diagramCard({cls:'example',text:'Example 3.1'}, 'A simple order-to-cash process',
+    `<p>Triggered whenever an order is received. Confirm, get shipping address, ship product, emit invoice, receive payment, then archive.</p>
+     <p class="vi">Bắt đầu khi nhận đơn hàng; xác nhận, lấy địa chỉ giao hàng, giao sản phẩm, phát hành hóa đơn, nhận thanh toán, rồi lưu trữ đơn hàng.</p>`,
+    {items:[
+      {type:'start', label:'Purchase order received', labelVI:'Đã nhận đơn đặt hàng'},
+      {type:'task', label:'Confirm order', labelVI:'Xác nhận đơn hàng'},
+      {type:'task', label:'Get shipping address', labelVI:'Lấy địa chỉ giao hàng'},
+      {type:'task', label:'Ship product', labelVI:'Giao sản phẩm'},
+      {type:'task', label:'Emit invoice', labelVI:'Phát hành hóa đơn'},
+      {type:'task', label:'Receive payment', labelVI:'Nhận thanh toán'},
+      {type:'task', label:'Archive order', labelVI:'Lưu trữ đơn hàng'},
+      {type:'end', label:'Order fulfilled', labelVI:'Đơn hàng đã hoàn tất'},
+    ], mainY:90}
+  ));
+  container.appendChild(card(null,'Process model vs. process instance (Mô hình & thực thể quy trình)', `
+    <p>A <b>process model</b> describes every possible instance. A <b>token</b> <span class="vi">(token)</span> marks the progress of one instance: created at the start event, it travels through the model and is destroyed at an end event.</p>
+  `));
+  container.appendChild(quizBlock({
+    id:'p2_token', q:'In the diagram above, if one order-instance token is currently sitting right after "Ship product", which statement is true?',
+    qvi:'Nếu một token của một đơn hàng đang ở ngay sau "Giao sản phẩm", phát biểu nào đúng?',
+    hint:'The token simply marks "where" that one instance currently is in the flow.',
+    options:[
+      {t:'That instance is about to move on to "Emit invoice" (Thực thể đó sắp chuyển sang "Phát hành hóa đơn")', correct:true},
+      {t:'The whole process model has finished (Toàn bộ mô hình quy trình đã kết thúc)', correct:false},
+      {t:'A new token must be created at the start event for this to continue (Phải tạo token mới tại sự kiện bắt đầu)', correct:false},
+      {t:'Every other order instance is now blocked (Mọi thực thể đơn hàng khác đều bị chặn)', correct:false},
+    ],
+    explain:'Token chỉ đánh dấu trạng thái của MỘT thực thể; nó di chuyển độc lập theo luồng tuần tự đến hoạt động kế tiếp. Các thực thể khác của cùng mô hình vẫn chạy song song, độc lập.'
+  }));
+  container.appendChild(card(null,'Naming conventions (Quy ước đặt tên)', `
+    <ul>
+      <li><b>Activity</b>: verb (imperative) + noun, max ~5 words. <span class="vi">e.g. "Approve order" (Phê duyệt đơn hàng)</span>.</li>
+      <li><b>Event</b>: noun + past participle. <span class="vi">e.g. "Invoice emitted" (Hóa đơn đã được phát hành)</span>.</li>
+      <li><b>Process</b>: a noun phrase, lower-case first letter. <span class="vi">e.g. "order-to-cash", "claim handling" (xử lý yêu cầu bồi thường)</span>.</li>
+    </ul>
+  `));
+  container.appendChild(quizBlock({
+    id:'p2_naming', q:'Which label correctly follows BPMN naming convention for an activity?',
+    qvi:'Nhãn nào dưới đây đúng quy ước đặt tên cho một hoạt động?',
+    hint:'Activities: imperative verb + business-object noun.',
+    options:[
+      {t:'"Approve order" (Phê duyệt đơn hàng)', correct:true},
+      {t:'"Order approved" (Đơn hàng đã được phê duyệt)', correct:false},
+      {t:'"Approval" (Phê duyệt)', correct:false},
+      {t:'"The order is approved by the manager" (Đơn hàng được quản lý phê duyệt)', correct:false},
+    ],
+    explain:'"Approve order" đúng quy ước hoạt động: động từ mệnh lệnh + danh từ, ngắn gọn. "Order approved" là quy ước cho SỰ KIỆN (danh từ + phân từ quá khứ), không phải hoạt động.'
+  }));
+}});
+
+/* ---------- PART 3 ---------- */
+SECTIONS.push({ id:'part3', label:'Part 3 · Gateways', labelVI:'Phần 3 · Cổng (Gateway)', build(container){
+  container.appendChild(card({cls:'concept',text:'Concept'}, 'Gateways: split & join (Cổng: tách & gộp)', `
+    <ul>
+      <li><b>Exclusive — XOR</b> <span class="vi">(loại trừ)</span>: split picks exactly one branch (mutually-exclusive conditions); join is a simple merge.</li>
+      <li><b>Parallel — AND</b> <span class="vi">(song song)</span>: split executes all branches at once; join waits for one token from every branch (synchronization).</li>
+      <li><b>Inclusive — OR</b> <span class="vi">(bao hàm)</span>: split picks one-or-more branches; join waits for all currently-active branches.</li>
+    </ul>
+  `));
+
+  container.appendChild(diagramCard({cls:'example',text:'Example 3.2'}, 'Exclusive decision — checking an invoice',
+    `<p>Three mutually-exclusive outcomes after checking an invoice for mismatches.</p><p class="vi">Ba khả năng loại trừ lẫn nhau sau khi kiểm tra sai lệch hóa đơn.</p>`,
+    {items:[
+      {type:'start', label:'Invoice received', labelVI:'Đã nhận hóa đơn'},
+      {type:'task', label:'Check invoice for mismatches', labelVI:'Kiểm tra sai lệch hóa đơn'},
+      {branch:[
+        [{type:'task', label:'Post invoice', labelVI:'Hạch toán hóa đơn'}],
+        [{type:'task', label:'Re-send invoice to customer', labelVI:'Gửi lại hóa đơn'}],
+        [{type:'task', label:'Block / park invoice', labelVI:'Khóa / tạm giữ hóa đơn'}],
+      ], gw:'xor', condLabels:['no mismatches','correctable','not correctable (default)']},
+      {type:'end', label:'Invoice handled', labelVI:'Hóa đơn đã xử lý'},
+    ], mainY:140}
+  ));
+  container.appendChild(quizBlock({
+    id:'ex32_gw', q:'Why must "Check invoice for mismatches" be followed by an XOR gateway rather than an AND gateway?',
+    qvi:'Vì sao "Kiểm tra sai lệch hóa đơn" phải theo sau bởi cổng XOR, không phải AND?',
+    hint:'Can two of the three outcomes (post / re-send / block) ever both be true for the same invoice?',
+    options:[
+      {t:'Because the three outcomes are mutually exclusive — only one can be true at a time (Ba kết quả loại trừ lẫn nhau — chỉ một đúng mỗi lần)', correct:true},
+      {t:'Because AND gateways cannot have more than two branches (Cổng AND không thể có quá hai nhánh)', correct:false},
+      {t:'Because XOR is always used before an end event (XOR luôn dùng trước sự kiện kết thúc)', correct:false},
+      {t:'There is no difference; either works (Không khác biệt, dùng cổng nào cũng được)', correct:false},
+    ],
+    explain:'AND thực hiện TẤT CẢ các nhánh — ở đây vô lý vì một hóa đơn không thể vừa được hạch toán vừa bị khóa. XOR chỉ chọn đúng MỘT nhánh dựa trên điều kiện loại trừ lẫn nhau, đúng với ngữ nghĩa "hoặc cái này, hoặc cái kia".'
+  }));
+
+  container.appendChild(diagramCard({cls:'example',text:'Example 3.3'}, 'Parallel execution — airport security',
+    `<p>Security and luggage screening have no ordering dependency, so they run in parallel.</p><p class="vi">Kiểm tra an ninh và kiểm tra hành lý không phụ thuộc thứ tự nên chạy song song.</p>`,
+    {items:[
+      {type:'start', label:'Boarding pass received', labelVI:'Đã nhận thẻ lên máy bay'},
+      {type:'task', label:'Proceed to security check', labelVI:'Di chuyển đến khu an ninh'},
+      {branch:[
+        [{type:'task', label:'Pass security screening', labelVI:'Hoàn tất kiểm tra an ninh'}],
+        [{type:'task', label:'Pass luggage screening', labelVI:'Hoàn tất kiểm tra hành lý'}],
+      ], gw:'and'},
+      {type:'task', label:'Proceed to departure level', labelVI:'Di chuyển đến tầng khởi hành'},
+      {type:'end', label:'Departure level reached', labelVI:'Đã đến tầng khởi hành'},
+    ], mainY:140}
+  ));
+
+  container.appendChild(diagramCard({cls:'example',text:'Example 3.4'}, 'XOR and AND combined — order-to-cash',
+    `<p>Reject if out of stock (XOR); otherwise ship and invoice run in parallel (AND) before payment.</p><p class="vi">Từ chối nếu hết hàng (XOR); nếu còn hàng, giao hàng và xuất hóa đơn chạy song song (AND) trước khi nhận thanh toán.</p>`,
+    {items:[
+      {type:'start', label:'Purchase order received', labelVI:'Đã nhận đơn đặt hàng'},
+      {type:'task', label:'Check stock availability', labelVI:'Kiểm tra tình trạng tồn kho'},
+      {branch:[
+        [{type:'task', label:'Reject order', labelVI:'Từ chối đơn hàng'}, {type:'end', label:'Order rejected', labelVI:'Đơn hàng bị từ chối'}],
+        [
+          {type:'task', label:'Retrieve product from warehouse', labelVI:'Lấy sản phẩm từ kho'},
+          {branch:[
+             [{type:'task', label:'Confirm order', labelVI:'Xác nhận đơn hàng'},{type:'task', label:'Get shipping address', labelVI:'Lấy địa chỉ giao hàng'},{type:'task', label:'Ship product', labelVI:'Giao sản phẩm'}],
+             [{type:'task', label:'Emit invoice', labelVI:'Phát hành hóa đơn'}],
+          ], gw:'and'},
+          {type:'task', label:'Receive payment', labelVI:'Nhận thanh toán'},
+          {type:'task', label:'Archive order', labelVI:'Lưu trữ đơn hàng'},
+          {type:'end', label:'Order fulfilled', labelVI:'Đơn hàng đã hoàn tất'},
+        ],
+      ], gw:'xor', condLabels:['out of stock','in stock']},
+    ], mainY:150}
+  ));
+  container.appendChild(quizBlock({
+    id:'ex34_gw', q:'Why are "Ship product" and "Emit invoice" placed between an AND-split and an AND-join rather than just drawn one after another?',
+    qvi:'Vì sao "Giao sản phẩm" và "Phát hành hóa đơn" được đặt giữa cổng tách AND và gộp AND thay vì vẽ nối tiếp nhau?',
+    hint:'Think about who performs each activity, and whether one must finish before the other starts.',
+    options:[
+      {t:'They are done by different resources and neither depends on the other finishing first, so they can run at the same time (Do nguồn lực khác nhau đảm nhận, không phụ thuộc thứ tự, có thể chạy đồng thời)', correct:true},
+      {t:'BPMN requires every model to contain at least one AND gateway (BPMN yêu cầu mọi mô hình phải có ít nhất một cổng AND)', correct:false},
+      {t:'Because invoices must always be emitted before shipping (Vì hóa đơn luôn phải phát hành trước khi giao hàng)', correct:false},
+      {t:'To reduce the number of end events needed (Để giảm số sự kiện kết thúc cần dùng)', correct:false},
+    ],
+    explain:'Cổng AND dùng khi hai hay nhiều hoạt động không có quan hệ phụ thuộc về thứ tự và có thể thực hiện đồng thời — ở đây giao hàng do nhân viên kho, xuất hóa đơn do bộ phận tài chính, nên có thể song song để rút ngắn thời gian xử lý.'
+  }));
+
+  container.appendChild(card({cls:'concept',text:'Concept'}, 'Which join type? The "token game" (Dùng cổng gộp nào?)', `
+    <p>Rule of thumb: match every join to its corresponding split. If unsure, try XOR first, then AND; use OR only when neither fits.</p>
+    <p class="vi">Khớp mỗi cổng gộp với cổng tách tương ứng. Nếu không rõ, thử XOR trước, rồi AND; chỉ dùng OR khi cả hai không phù hợp.</p>
+  `));
+  container.appendChild(quizBlock({
+    id:'p3_jointype', q:'A process has an XOR-split sending the token down exactly one of two branches (B or E). Branch B later needs to join with a separate always-executed branch (C) before continuing to F. What join type correctly combines the "B-or-E" branch with branch C?',
+    qvi:'Một cổng tách XOR gửi token đi theo đúng một trong hai nhánh (B hoặc E). Nhánh B sau đó cần gộp với một nhánh luôn thực hiện (C) trước khi tiếp tục đến F. Dùng cổng gộp nào để gộp đúng nhánh "B-hoặc-E" với nhánh C?',
+    hint:'An AND-join would wait forever for a token from E whenever the XOR chose B (or vice-versa) — that is a deadlock.',
+    options:[
+      {t:'OR-join — it only waits for the branches that are actually active (Cổng gộp OR — chỉ chờ các nhánh đang hoạt động)', correct:true},
+      {t:'AND-join — always wait for both incoming branches (Cổng gộp AND — luôn chờ cả hai nhánh)', correct:false},
+      {t:'XOR-join — forward whichever token arrives first (Cổng gộp XOR — chuyển tiếp token đến trước)', correct:false},
+      {t:'No gateway is needed (Không cần dùng cổng)', correct:false},
+    ],
+    explain:'AND-join gây bế tắc (deadlock) vì chỉ một trong B/E có token. XOR-join gây thiếu đồng bộ (F có thể chạy hai lần nếu cả C và B/E đều có token). Chỉ OR-join mới xử lý đúng: nó chờ đúng các nhánh đang thực sự hoạt động.'
+  }));
+
+  container.appendChild(diagramCard({cls:'example',text:'Example 3.5'}, 'Inclusive decision — order distribution',
+    `<p>An order may contain products from the Amsterdam warehouse, the Hamburg warehouse, or both — so one OR gateway is needed (not nested XORs, which would wrongly allow "neither").</p>
+     <p class="vi">Một đơn hàng có thể có sản phẩm từ kho Amsterdam, Hamburg, hoặc cả hai — cần một cổng OR (không dùng XOR lồng nhau, vì sẽ cho phép sai trường hợp "không kho nào").</p>`,
+    {items:[
+      {type:'start', label:'Order received', labelVI:'Đã nhận đơn hàng'},
+      {type:'task', label:'Check order line items', labelVI:'Kiểm tra các dòng mục'},
+      {branch:[
+        [{type:'task', label:'Forward sub-order to Amsterdam', labelVI:'Chuyển đến kho Amsterdam'}],
+        [{type:'task', label:'Forward sub-order to Hamburg', labelVI:'Chuyển đến kho Hamburg'}],
+      ], gw:'or', condLabels:['has Amsterdam products','has Hamburg products']},
+      {type:'task', label:'Register order', labelVI:'Ghi nhận đơn hàng'},
+      {type:'end', label:'Order completed', labelVI:'Đơn hàng đã hoàn tất'},
+    ], mainY:140}
+  ));
+
+  container.appendChild(diagramCard({cls:'example',text:'Example 3.6'}, 'OR nested inside XOR — manufacturing when out of stock',
+    `<p>If out of stock, raw materials may come from Supplier 1, Supplier 2, or both (OR) before manufacturing — nested inside the outer stock-availability XOR.</p>
+     <p class="vi">Nếu hết hàng, nguyên vật liệu có thể đến từ NCC 1, NCC 2, hoặc cả hai (OR) trước khi sản xuất — lồng bên trong cổng XOR kiểm tra tồn kho.</p>`,
+    {items:[
+      {type:'start', label:'Purchase order received', labelVI:'Đã nhận đơn đặt hàng'},
+      {type:'task', label:'Check stock availability', labelVI:'Kiểm tra tình trạng tồn kho'},
+      {branch:[
+        [{type:'task', label:'Retrieve product from warehouse', labelVI:'Lấy sản phẩm từ kho'}],
+        [
+          {type:'task', label:'Check raw materials availability', labelVI:'Kiểm tra tình trạng NVL'},
+          {branch:[
+            [{type:'task', label:'Request / obtain from Supplier 1', labelVI:'Nhận NVL từ NCC 1'}],
+            [{type:'task', label:'Request / obtain from Supplier 2', labelVI:'Nhận NVL từ NCC 2'}],
+          ], gw:'or'},
+          {type:'task', label:'Manufacture product', labelVI:'Sản xuất sản phẩm'},
+        ],
+      ], gw:'xor', condLabels:['in stock','out of stock']},
+      {type:'task', label:'Confirm, ship &amp; invoice', labelVI:'Xác nhận, giao hàng &amp; xuất hóa đơn'},
+      {type:'end', label:'Order fulfilled', labelVI:'Đơn hàng đã hoàn tất'},
+    ], mainY:150}
+  ));
+
+  container.appendChild(card({cls:'concept',text:'Concept'}, 'Rework & repetition (Làm lại & lặp lại)', `
+    <p>A loop: an XOR-join enters the repeating block, the block ends in a decision activity, and an XOR-split either continues the process or routes back to before the block.</p>
+    <p class="vi">Một vòng lặp: cổng gộp XOR dẫn vào khối lặp, khối kết thúc bằng một hoạt động ra quyết định, cổng tách XOR sau đó hoặc tiếp tục quy trình hoặc quay lại trước khối lặp.</p>
+  `));
+  container.appendChild(diagramCard({cls:'example',text:'Example 3.7'}, 'Rework loop — ministerial correspondence',
+    `<p>Draft and review the response repeatedly until it is approved.</p><p class="vi">Soạn thảo và rà soát văn bản trả lời, lặp lại cho đến khi được phê duyệt.</p>`,
+    {items:[
+      {type:'start', label:'Ministerial inquiry received', labelVI:'Đã nhận yêu cầu chất vấn'},
+      {type:'task', label:'Register inquiry', labelVI:'Ghi nhận yêu cầu'},
+      {type:'task', label:'Investigate inquiry', labelVI:'Điều tra yêu cầu'},
+      {loop:[
+        {type:'task', label:'Draft ministerial response', labelVI:'Soạn thảo văn bản trả lời'},
+        {type:'task', label:'Review ministerial response', labelVI:'Rà soát văn bản trả lời'},
+      ], exitLabel:'approved', repeatLabel:'not approved'},
+      {type:'end', label:'Correspondence addressed', labelVI:'Công văn đã hoàn tất'},
+    ], mainY:110}
+  ));
+
+  container.appendChild(el('h2',{style:'margin-top:34px'}, 'Interactive exercises (Bài tập tương tác) — loan origination'));
+  container.appendChild(el('p',{class:'vi'}, 'Bốn phần của cùng một quy trình thẩm định hồ sơ vay, xây dựng từng bước.'));
+
+  container.appendChild(card({cls:'exercise',text:'Exercise 3.1'}, 'Loan origination — part 1',
+    exerciseHTMLWrap()));
+  container.lastChild.querySelector('.ex-slot').appendChild(exerciseBlock({
+    id:'311',
+    scenario:'<b>Scenario:</b> model the fragment of the process right after a loan application has been approved. An acceptance pack (with a repayment schedule) is prepared and sent to the customer, who signs and returns it. The provider then verifies the repayment agreement: if the applicant disagrees, the provider cancels the application; if the applicant agrees, the provider approves it. Either way, the provider notifies the application status.<br><span class="vi">Mô hình hóa đoạn quy trình ngay sau khi đơn vay được phê duyệt: chuẩn bị &amp; gửi hồ sơ chấp thuận, khách hàng ký và gửi lại, bên cho vay xác minh thỏa thuận trả nợ — nếu không đồng ý thì hủy đơn, nếu đồng ý thì phê duyệt; cả hai trường hợp đều thông báo tình trạng đơn vay.</span>',
+    q:'What gateway should follow "Verify repayment agreement"?',
+    qvi:'Cổng nào nên theo sau "Xác minh thỏa thuận trả nợ"?',
+    hint:'Agree vs. disagree — can both be true at once?',
+    options:[
+      {t:'XOR-split: exactly one of "agree" / "disagree" (Cổng tách XOR: chỉ đúng một trong hai)', correct:true},
+      {t:'AND-split: do both cancel and approve (Cổng tách AND: vừa hủy vừa phê duyệt)', correct:false},
+      {t:'OR-split: maybe cancel, maybe approve, maybe both (Cổng tách OR: có thể cả hai)', correct:false},
+      {t:'No gateway — go straight to "Approve application" (Không cần cổng — đi thẳng đến phê duyệt)', correct:false},
+    ],
+    explain:'Hai kết quả loại trừ lẫn nhau (đồng ý / không đồng ý) nên cần cổng tách XOR, sau đó hai nhánh cùng gộp lại (cổng gộp XOR) trước hoạt động chung "Thông báo tình trạng đơn vay".',
+    diagram:{items:[
+      {type:'start', label:'Loan application approved', labelVI:'Đơn vay đã được phê duyệt'},
+      {type:'task', label:'Prepare acceptance pack', labelVI:'Chuẩn bị hồ sơ chấp thuận'},
+      {type:'task', label:'Send acceptance pack', labelVI:'Gửi hồ sơ chấp thuận'},
+      {type:'task', label:'Receive signed documents', labelVI:'Nhận hồ sơ đã ký'},
+      {type:'task', label:'Verify repayment agreement', labelVI:'Xác minh thỏa thuận trả nợ'},
+      {branch:[
+        [{type:'task', label:'Cancel application', labelVI:'Hủy đơn vay'}],
+        [{type:'task', label:'Approve application', labelVI:'Phê duyệt đơn vay'}],
+      ], gw:'xor', condLabels:['applicant disagrees','applicant agrees']},
+      {type:'task', label:'Notify application status', labelVI:'Thông báo tình trạng đơn vay'},
+      {type:'end', label:'Loan application completed', labelVI:'Đơn vay đã hoàn tất'},
+    ], mainY:140},
+    checks:['Decision activity before the XOR-split (hoạt động ra quyết định trước cổng tách XOR)','Both branches labeled with mutually-exclusive conditions (cả hai nhánh được gắn nhãn loại trừ lẫn nhau)','XOR-join before the shared "Notify" activity (cổng gộp XOR trước hoạt động chung)']
+  }));
+
+  container.appendChild(card({cls:'exercise',text:'Exercise 3.2'}, 'Loan origination — part 2', exerciseHTMLWrap()));
+  container.lastChild.querySelector('.ex-slot').appendChild(exerciseBlock({
+    id:'312',
+    scenario:'<b>Scenario:</b> a loan application is approved only if it passes two checks: an automated loan-risk assessment (which itself requires checking the applicant\'s credit history), and a property appraisal performed by a property appraiser. Once both checks are done, a loan officer assesses eligibility — if not eligible, reject; otherwise prepare and send the acceptance pack.<br><span class="vi">Đơn vay chỉ được duyệt nếu vượt qua hai kiểm tra độc lập: đánh giá rủi ro (cần kiểm tra lịch sử tín dụng trước) và thẩm định tài sản. Sau đó chuyên viên tín dụng đánh giá điều kiện đủ tiêu chuẩn.</span>',
+    q:'How should the credit-risk check and the property appraisal be related in the model?',
+    qvi:'Hai bước kiểm tra rủi ro tín dụng và thẩm định tài sản nên quan hệ với nhau ra sao trong mô hình?',
+    hint:'Neither check depends on the result of the other — they can happen independently.',
+    options:[
+      {t:'In parallel, via an AND-split / AND-join (Song song, qua cổng tách/gộp AND)', correct:true},
+      {t:'Sequentially, risk check always before appraisal (Tuần tự, luôn kiểm tra rủi ro trước)', correct:false},
+      {t:'As alternatives via an XOR-split (Là hai lựa chọn loại trừ qua cổng XOR)', correct:false},
+      {t:'Only one of them is actually needed (Chỉ cần một trong hai)', correct:false},
+    ],
+    explain:'Hai bước kiểm tra độc lập với nhau — không bước nào phải chờ bước kia — nên dùng cổng tách AND và cổng gộp AND (đồng bộ hóa) trước khi "Đánh giá điều kiện đủ tiêu chuẩn".',
+    diagram:{items:[
+      {type:'start', label:'Loan application', labelVI:'Đã nhận đơn vay'},
+      {branch:[
+        [{type:'task', label:'Check credit history', labelVI:'Kiểm tra lịch sử tín dụng'},{type:'task', label:'Assess loan risk', labelVI:'Đánh giá rủi ro khoản vay'}],
+        [{type:'task', label:'Appraise property', labelVI:'Thẩm định tài sản'}],
+      ], gw:'and'},
+      {type:'task', label:'Assess eligibility', labelVI:'Đánh giá điều kiện đủ tiêu chuẩn'},
+      {branch:[
+        [{type:'task', label:'Reject application', labelVI:'Từ chối đơn vay'},{type:'end', label:'Application rejected', labelVI:'Đơn vay bị từ chối'}],
+        [{type:'task', label:'Prepare acceptance pack', labelVI:'Chuẩn bị hồ sơ chấp thuận'},{type:'task', label:'Send acceptance pack', labelVI:'Gửi hồ sơ chấp thuận'},{type:'end', label:'Acceptance pack sent', labelVI:'Đã gửi hồ sơ'}],
+      ], gw:'xor', condLabels:['not eligible','eligible']},
+    ], mainY:150},
+    checks:['AND-split/join for the two independent checks (AND cho hai kiểm tra độc lập)','Credit-history check precedes risk assessment on the same branch (kiểm tra tín dụng trước đánh giá rủi ro, cùng một nhánh)','Decision activity before the XOR-split, two end events for the two outcomes (hoạt động ra quyết định trước XOR, hai sự kiện kết thúc)']
+  }));
+
+  container.appendChild(card({cls:'exercise',text:'Exercise 3.3'}, 'Loan origination — part 3', exerciseHTMLWrap()));
+  container.lastChild.querySelector('.ex-slot').appendChild(exerciseBlock({
+    id:'313',
+    scenario:'<b>Scenario:</b> a loan can be bundled with a discounted home-insurance package. The applicant indicates at application time whether they are interested. If approved, the provider always sends the acceptance pack, and additionally sends a home-insurance quote only when that interest was indicated.<br><span class="vi">Đơn vay có thể kèm gói bảo hiểm nhà giá ưu đãi. Hồ sơ chấp thuận luôn được gửi; báo giá bảo hiểm nhà chỉ gửi khi có yêu cầu.</span>',
+    q:'Which gateway combination correctly models "always send the pack, and additionally send the quote only if requested"?',
+    qvi:'Tổ hợp cổng nào mô hình hóa đúng "luôn gửi hồ sơ, thêm báo giá chỉ khi có yêu cầu"?',
+    hint:'One branch is always taken (default), the other only sometimes — and both could be active together.',
+    options:[
+      {t:'OR-split / OR-join — one or both branches may run (Cổng tách/gộp OR — một hoặc cả hai nhánh có thể chạy)', correct:true},
+      {t:'XOR-split / XOR-join — exactly one branch (Cổng tách/gộp XOR — đúng một nhánh)', correct:false},
+      {t:'AND-split / AND-join — always both branches (Cổng tách/gộp AND — luôn cả hai nhánh)', correct:false},
+      {t:'No gateway needed (Không cần cổng)', correct:false},
+    ],
+    explain:'XOR sẽ cấm việc gửi cả hai; AND sẽ luôn gửi báo giá kể cả khi không được yêu cầu. Chỉ cổng OR mới cho phép đúng hai khả năng cần thiết: luôn gửi hồ sơ (mặc định), và thêm báo giá khi có yêu cầu.',
+    diagram:{items:[
+      {type:'start', label:'Loan application approved', labelVI:'Đơn vay đã được phê duyệt'},
+      {type:'task', label:'Prepare acceptance pack', labelVI:'Chuẩn bị hồ sơ chấp thuận'},
+      {branch:[
+        [{type:'task', label:'Send acceptance pack', labelVI:'Gửi hồ sơ chấp thuận'}],
+        [{type:'task', label:'Send home insurance quote', labelVI:'Gửi báo giá bảo hiểm nhà'}],
+      ], gw:'or', condLabels:['always (default)','quote requested']},
+      {type:'task', label:'Verify repayment agreement', labelVI:'Xác minh thỏa thuận trả nợ'},
+      {type:'end', label:'Loan application completed', labelVI:'Đơn vay đã hoàn tất'},
+    ], mainY:140},
+    checks:['OR-split with one default ("always") branch (cổng tách OR với một nhánh mặc định "luôn luôn")','OR-join waits only for the branches actually active (cổng gộp OR chỉ chờ nhánh đang hoạt động)']
+  }));
+
+  container.appendChild(card({cls:'exercise',text:'Exercise 3.4'}, 'Loan origination — part 4', exerciseHTMLWrap()));
+  container.lastChild.querySelector('.ex-slot').appendChild(exerciseBlock({
+    id:'314',
+    scenario:'<b>Scenario:</b> when a loan provider receives an application, it first checks the form\'s completeness before any assessment step. An incomplete form is returned to the applicant, who supplies the missing information and resubmits. This repeats until the form is confirmed complete.<br><span class="vi">Khi nhận đơn vay, bên cho vay kiểm tra tính đầy đủ trước khi đánh giá. Đơn chưa đầy đủ được trả lại, người nộp bổ sung và gửi lại — lặp lại đến khi đầy đủ.</span>',
+    q:'What should precede the repeating "check completeness" block, and what should the "return to applicant" branch connect back to?',
+    qvi:'Yếu tố nào nên đứng trước khối lặp "kiểm tra tính đầy đủ", và nhánh "trả lại hồ sơ" nên nối ngược lại điểm nào?',
+    hint:'An AND-join here would deadlock (only one branch is ever active); think about which gateway correctly both starts and re-enters a loop.',
+    options:[
+      {t:'An XOR-join before the block; the repeat branch loops back to that same XOR-join (Cổng gộp XOR trước khối lặp; nhánh lặp quay lại đúng cổng gộp đó)', correct:true},
+      {t:'An AND-join before the block; loop back to the start event (Cổng gộp AND trước khối; quay lại sự kiện bắt đầu)', correct:false},
+      {t:'No gateway needed — just draw an arrow backwards (Không cần cổng — chỉ vẽ mũi tên ngược lại)', correct:false},
+      {t:'An OR-split, since the loop may or may not repeat (Cổng tách OR, vì vòng lặp có thể lặp hoặc không)', correct:false},
+      ],
+    explain:'Đây là mẫu "rework loop" chuẩn: một cổng gộp XOR đứng trước khối lặp để nhận cả luồng ban đầu lẫn luồng quay lại; khối kết thúc bằng hoạt động ra quyết định và một cổng tách XOR, một nhánh tiếp tục, nhánh còn lại quay về đúng cổng gộp XOR ban đầu — không phải sự kiện bắt đầu.',
+    diagram:{items:[
+      {type:'start', label:'Loan application received', labelVI:'Đã nhận đơn vay'},
+      {loop:[
+        {type:'task', label:'Check form completeness', labelVI:'Kiểm tra tính đầy đủ của hồ sơ'},
+      ], exitLabel:'form complete', repeatLabel:'form incomplete — return &amp; resubmit'},
+      {type:'end', label:'Form checked', labelVI:'Hồ sơ đã được kiểm tra'},
+    ], mainY:110},
+    checks:['XOR-join (not AND) immediately before the repeating block (cổng gộp XOR, không phải AND, ngay trước khối lặp)','Decision activity ends the block, followed by an XOR-split (hoạt động ra quyết định kết thúc khối, theo sau là cổng tách XOR)','The repeat branch returns to the XOR-join, not to the start event (nhánh lặp quay lại cổng gộp XOR, không phải sự kiện bắt đầu)']
+  }));
+}});
+
+function exerciseHTMLWrap(){ return '<div class="ex-slot"></div>'; }
+
+/* ---------- PART 4 ---------- */
+SECTIONS.push({ id:'part4', label:'Part 4 · Objects & resources', labelVI:'Phần 4 · Đối tượng & nguồn lực', build(container){
+  container.appendChild(card({cls:'concept',text:'Concept'}, 'Data objects, resources, pools & lanes', `
+    <ul>
+      <li><b>Data object</b> <span class="vi">(đối tượng dữ liệu)</span> — information or material flowing in/out of activities; optional state in brackets, e.g. <i>Purchase order [confirmed]</i>.</li>
+      <li><b>Data store</b> <span class="vi">(kho dữ liệu)</span> — persists longer than one instance: a database or filing cabinet.</li>
+      <li><b>Resource</b> <span class="vi">(nguồn lực)</span> — who/what performs an activity: a participant, software system, or device. Only <i>active</i> resources are modeled.</li>
+      <li><b>Pool</b> <span class="vi">(bể)</span> — usually a whole business party, e.g. the seller. <b>Lane</b> <span class="vi">(làn)</span> — subdivides a pool: a department, role, or system.</li>
+      <li><b>Message flow</b> <span class="vi">(luồng thông điệp)</span> — dashed arrow, only ever between pools, never inside one.</li>
+    </ul>
+  `));
+  container.appendChild(diagramCard({cls:'example',text:'Example 3.8'}, 'Order-to-cash with lanes', `
+    <p>Pool: <b>Seller</b>. Each activity sits in the lane of the resource performing it. "Check stock availability" is automated, so it belongs to the ERP System lane; "Confirm order" and shipping/invoicing belong to Sales.</p>
+    <p class="vi">Bể: Bên bán. Mỗi hoạt động nằm trong làn của nguồn lực thực hiện nó. "Kiểm tra tồn kho" do hệ thống ERP tự động thực hiện nên nằm trong làn Hệ thống ERP; "Xác nhận đơn hàng" và giao hàng/xuất hóa đơn thuộc Bộ phận bán hàng.</p>`,
+    {rows:[
+      {y:0, items:[
+        {type:'start', label:'Purchase order received', labelVI:'Đã nhận đơn đặt hàng'},
+        {type:'task', label:'Check stock availability', labelVI:'Kiểm tra tình trạng tồn kho'},
+        {branch:[
+          [{type:'task', label:'Retrieve product from warehouse', labelVI:'Lấy sản phẩm từ kho'}],
+          [
+            {type:'task', label:'Check raw materials availability', labelVI:'Kiểm tra NVL'},
+            {branch:[
+              [{type:'task', label:'Obtain from Supplier 1', labelVI:'Nhận NVL từ NCC 1'}],
+              [{type:'task', label:'Obtain from Supplier 2', labelVI:'Nhận NVL từ NCC 2'}],
+            ], gw:'or', rowOffsets:[-38,38]},
+            {type:'task', label:'Manufacture product', labelVI:'Sản xuất sản phẩm'},
+          ],
+        ], gw:'xor', condLabels:['in stock','out of stock'], rowOffsets:[72,160]},
+      ]},
+      {y:300, items:[
+        {type:'task', label:'Confirm order', labelVI:'Xác nhận đơn hàng'},
+        {type:'task', label:'Ship &amp; invoice', labelVI:'Giao hàng &amp; xuất hóa đơn'},
+        {type:'end', label:'Order fulfilled', labelVI:'Đơn hàng đã hoàn tất'},
+      ]},
+    ],
+    lanes:[
+      {label:'ERP System (Hệ thống ERP)', yTop:-34, yBottom:70},
+      {label:'Warehouse staff (Nhân viên kho)', yTop:70, yBottom:140},
+      {label:'Warehouse &amp; Distribution (Kho vận &amp; Phân phối)', yTop:140, yBottom:270},
+      {label:'Sales (Bộ phận bán hàng)', yTop:272, yBottom:378},
+    ]}
+  ));
+  container.appendChild(quizBlock({
+    id:'p4_lanes', q:'The start event "Purchase order received" and the first task "Check stock availability" are both placed in the ERP System lane. Why?',
+    qvi:'Sự kiện bắt đầu và hoạt động đầu tiên đều nằm trong làn Hệ thống ERP. Vì sao?',
+    hint:'Lane placement follows whoever (or whatever) actually performs the step.',
+    options:[
+      {t:'Because the ERP system automatically receives the order and checks stock without human involvement (Hệ thống ERP tự động nhận đơn và kiểm tra tồn kho, không cần con người)', correct:true},
+      {t:'Because start events always belong to the IT lane by convention (Vì sự kiện bắt đầu luôn thuộc làn CNTT theo quy ước)', correct:false},
+      {t:'Lane placement is arbitrary and has no modeling meaning (Vị trí làn là tùy ý, không có ý nghĩa mô hình hóa)', correct:false},
+      {t:'Because gateways must always sit in the first lane (Vì cổng luôn phải nằm ở làn đầu tiên)', correct:false},
+    ],
+    explain:'Quy tắc đặt làn: mỗi hoạt động/sự kiện nằm trong làn của nguồn lực THỰC SỰ thực hiện nó. Hệ thống ERP tự động thực hiện bước kiểm tra tồn kho, nên bước đó (và sự kiện bắt đầu diễn ra tại hệ thống) thuộc làn Hệ thống ERP, không phải một con người cụ thể.'
+  }));
+
+  container.appendChild(diagramCard({cls:'example',text:'Collaboration'}, 'Pools & message flows — customer and seller', `
+    <p>The customer pool is shown as a <b>black-box</b> <span class="vi">(bể hộp đen)</span> — only its message flows to the seller matter here. The seller pool is a <b>white-box</b> <span class="vi">(bể hộp trắng)</span>, showing its internal activities.</p>`,
+    {items:[
+      {type:'start', label:'Purchase order received', labelVI:'Đã nhận đơn đặt hàng'},
+      {type:'task', label:'Confirm order', labelVI:'Xác nhận đơn hàng'},
+      {type:'task', label:'Get shipping address', labelVI:'Lấy địa chỉ giao hàng'},
+      {type:'task', label:'Ship product', labelVI:'Giao sản phẩm'},
+      {type:'task', label:'Emit invoice', labelVI:'Phát hành hóa đơn'},
+      {type:'task', label:'Receive payment', labelVI:'Nhận thanh toán'},
+      {type:'end', label:'Order fulfilled', labelVI:'Đơn hàng đã hoàn tất'},
+    ], mainY:70,
+    lanes:[{label:'Customer — black-box (hộp đen)', yTop:-62, yBottom:-18},{label:'Seller — white-box (hộp trắng)', yTop:-18, yBottom:142}],
+    messageFlows:[
+      {fromXY:{x:60,y:-40}, to:'r_n1', label:'Purchase order'},
+      {fromXY:{x:220,y:-40}, to:'r_n2', label:'Order [confirmed]'},
+      {fromXY:{x:380,y:-40}, to:'r_n4', label:'Payment'},
+    ]}
+  ));
+  container.appendChild(quizBlock({
+    id:'p4_msgflow', q:'Can a message flow connect two activities that are both inside the Seller pool?',
+    qvi:'Luồng thông điệp có thể nối hai hoạt động cùng nằm trong bể Bên bán không?',
+    hint:'Message flows represent communication between separate parties.',
+    options:[
+      {t:'No — message flows only ever cross pool boundaries (Không — luồng thông điệp chỉ bao giờ vượt ranh giới giữa các bể)', correct:true},
+      {t:'Yes, whenever the two activities are in different lanes (Có, miễn là hai hoạt động ở hai làn khác nhau)', correct:false},
+      {t:'Yes, but only for data objects, not activities (Có, nhưng chỉ với đối tượng dữ liệu)', correct:false},
+      {t:'Only if one of the activities is a sub-process (Chỉ khi một trong hai là quy trình con)', correct:false},
+    ],
+    explain:'Theo quy tắc BPMN, luồng thông điệp luôn biểu diễn trao đổi GIỮA các bể (các bên nghiệp vụ khác nhau), không bao giờ nối hai hoạt động trong cùng một bể — dù chúng ở hai làn khác nhau. Trong cùng một bể, quan hệ giữa các hoạt động luôn là luồng tuần tự.'
+  }));
+}});
+
+/* ---------- PART 5 ---------- */
+SECTIONS.push({ id:'part5', label:'Part 5 · Sub-processes', labelVI:'Phần 5 · Quy trình con', build(container){
+  container.appendChild(card({cls:'concept',text:'Concept'}, 'Sub-processes: collapsed & expanded (Quy trình con: thu gọn & mở rộng)', `
+    <ul>
+      <li>A <b>task</b> cannot be broken down further; a <b>sub-process</b> is a compound activity with its own internal flow.</li>
+      <li><b>Collapsed</b> <span class="vi">(thu gọn)</span>: internal content hidden, marked with "+". Use when a model exceeds ~30 flow objects.</li>
+      <li><b>Embedded sub-process</b> <span class="vi">(quy trình con nhúng)</span>: defined only inside its parent, default choice.</li>
+      <li><b>Global process model + call activity</b> <span class="vi">(mô hình quy trình toàn cục + hoạt động gọi)</span>: reusable across multiple parent models — e.g. "Sign loan contract" reused for mortgages, student loans, car loans.</li>
+    </ul>
+  `));
+  container.appendChild(diagramCard({cls:'example',text:'Recap'}, 'Example 3.6, collapsed into sub-processes', `
+    <p>The same order-to-cash-with-manufacturing flow, hiding the OR-block inside "Acquire raw materials" and the AND-block inside "Ship and invoice".</p>
+    <p class="vi">Cùng quy trình order-to-cash kèm sản xuất, ẩn khối OR trong "Thu mua nguyên vật liệu" và khối AND trong "Giao hàng và xuất hóa đơn".</p>`,
+    {items:[
+      {type:'start', label:'Purchase order received', labelVI:'Đã nhận đơn đặt hàng'},
+      {type:'task', label:'Check stock availability', labelVI:'Kiểm tra tình trạng tồn kho'},
+      {branch:[
+        [{type:'task', label:'Retrieve product from warehouse', labelVI:'Lấy sản phẩm từ kho'}],
+        [{type:'subprocess', label:'Acquire raw materials', labelVI:'Thu mua nguyên vật liệu'},{type:'task', label:'Manufacture product', labelVI:'Sản xuất sản phẩm'}],
+      ], gw:'xor', condLabels:['in stock','out of stock']},
+      {type:'task', label:'Confirm order', labelVI:'Xác nhận đơn hàng'},
+      {type:'subprocess', label:'Ship and invoice', labelVI:'Giao hàng &amp; xuất hóa đơn'},
+      {type:'task', label:'Archive order', labelVI:'Lưu trữ đơn hàng'},
+      {type:'end', label:'Order fulfilled', labelVI:'Đơn hàng đã hoàn tất'},
+    ], mainY:150}
+  ));
+
+  container.appendChild(card({cls:'exercise',text:'Exercise 3.9'}, 'Sub-processes in the loan-origination model', exerciseHTMLWrap()));
+  container.lastChild.querySelector('.ex-slot').appendChild(exerciseBlock({
+    id:'39',
+    scenario:'<b>Scenario:</b> using the complete loan-origination model assembled from Exercises 3.1–3.4 and 3.6/3.7, identify suitable sub-processes and redraw the top-level model with them collapsed.<br><span class="vi">Dùng mô hình thẩm định hồ sơ vay hoàn chỉnh từ Bài tập 3.1–3.4 và 3.6/3.7, xác định các quy trình con phù hợp và vẽ lại mô hình cấp cao nhất với các quy trình con ở trạng thái thu gọn.</span>',
+    q:'Which grouping below gives the most sensible set of sub-processes?',
+    qvi:'Cách nhóm nào dưới đây cho bộ quy trình con hợp lý nhất?',
+    hint:'Each of Exercises 3.1–3.4 was already a self-contained fragment with its own clear start/end labels — that is a strong hint for sub-process boundaries.',
+    options:[
+      {t:'One sub-process per original exercise fragment: "Check completeness" (loop), "Assess application" (parallel checks + eligibility), "Send documents" (OR), "Verify application" (XOR) (Mỗi đoạn bài tập gốc thành một quy trình con)', correct:true},
+      {t:'A single sub-process containing the entire process (Một quy trình con duy nhất chứa toàn bộ quy trình)', correct:false},
+      {t:'One sub-process per individual task, however small (Một quy trình con cho từng tác vụ nhỏ nhất)', correct:false},
+      {t:'Sub-processes grouped by which lane performs them, ignoring the control flow (Nhóm theo làn thực hiện, bỏ qua luồng điều khiển)', correct:false},
+    ],
+    explain:'Các đoạn quy trình từ Bài tập 3.1–3.4 vốn đã là các khối có sự kiện bắt đầu/kết thúc rõ ràng và mang một mục đích nghiệp vụ trọn vẹn (kiểm tra tính đầy đủ, đánh giá, gửi tài liệu, xác minh) — đây chính là ranh giới tự nhiên và hợp lý nhất cho quy trình con, giúp mô hình cấp cao gọn và dễ đọc.',
+    diagram:{items:[
+      {type:'start', label:'Loan application received', labelVI:'Đã nhận đơn vay'},
+      {type:'subprocess', label:'Check completeness', labelVI:'Kiểm tra tính đầy đủ'},
+      {branch:[
+        [{type:'task', label:'Reject application', labelVI:'Từ chối đơn vay'},{type:'end', label:'Application rejected', labelVI:'Đơn vay bị từ chối'}],
+        [
+          {type:'subprocess', label:'Assess application', labelVI:'Đánh giá hồ sơ'},
+          {type:'subprocess', label:'Send relevant material', labelVI:'Gửi tài liệu liên quan'},
+          {type:'subprocess', label:'Verify application', labelVI:'Xác minh hồ sơ'},
+          {type:'end', label:'Loan application completed', labelVI:'Đơn vay đã hoàn tất'},
+        ],
+      ], gw:'xor', condLabels:['not eligible','eligible']},
+    ], mainY:120},
+    checks:['Each collapsed sub-process corresponds to one earlier exercise fragment (mỗi quy trình con thu gọn tương ứng một đoạn bài tập trước đó)','The eligibility decision remains visible at the top level (quyết định về điều kiện đủ tiêu chuẩn vẫn hiển thị ở cấp cao nhất)']
+  }));
+}});
+
+/* ---------- SUMMARY ---------- */
+SECTIONS.push({ id:'summary', label:'Summary & quiz', labelVI:'Tổng kết & ôn tập', build(container){
+  container.appendChild(card(null,'Summary (Tóm tắt)', `
+    <ul>
+      <li>A process model describes every possible instance; a token marks one instance's progress.</li>
+      <li>Events, activities and sequence flows are BPMN's core. XOR / AND / OR gateways model exclusive, parallel and inclusive decisions; an XOR-join closes a rework loop.</li>
+      <li>Data objects and stores represent information and material; pools, lanes and message flows represent who does the work and how parties interact.</li>
+      <li>Sub-processes and call activities keep large models readable and reusable.</li>
+    </ul>
+    <p class="vi">Mô hình quy trình mô tả mọi thực thể có thể có; token đánh dấu trạng thái của một thực thể. Sự kiện, hoạt động, luồng tuần tự là cốt lõi BPMN. Cổng XOR/AND/OR mô hình hóa quyết định loại trừ, song song, bao hàm. Đối tượng/kho dữ liệu thể hiện thông tin & vật liệu; bể/làn/luồng thông điệp thể hiện ai làm gì và các bên tương tác ra sao. Quy trình con & hoạt động gọi giúp mô hình lớn vẫn gọn và tái sử dụng được.</p>
+  `));
+  container.appendChild(el('h2',{},'Final review quiz (Trắc nghiệm ôn tập cuối bài)'));
+  const finalQs = [
+    {id:'f1', q:'Which shape marks the moment a process instance begins?', qvi:'Hình nào đánh dấu thời điểm một thực thể quy trình bắt đầu?',
+     options:[{t:'A thin-bordered circle (start event)',correct:true},{t:'A thick-bordered circle (end event)',correct:false},{t:'A diamond (gateway)',correct:false},{t:'A rounded rectangle (task)',correct:false}],
+     explain:'Sự kiện bắt đầu được vẽ bằng hình tròn viền mảnh.'},
+    {id:'f2', q:'Two activities must both complete, in any order, before the process continues. Which gateway pair fits?', qvi:'Hai hoạt động đều phải hoàn tất, không ràng buộc thứ tự, trước khi tiếp tục. Dùng cặp cổng nào?',
+     options:[{t:'AND-split / AND-join',correct:true},{t:'XOR-split / XOR-join',correct:false},{t:'OR-split / OR-join',correct:false},{t:'No gateway needed',correct:false}],
+     explain:'AND thực hiện tất cả các nhánh song song và chờ đồng bộ ở cổng gộp — đúng với yêu cầu "cả hai, không ràng buộc thứ tự".'},
+    {id:'f3', q:'A rework loop (draft → review → repeat-if-rejected) should enter its repeating block through which gateway?', qvi:'Vòng lặp làm lại nên đi vào khối lặp qua cổng nào?',
+     options:[{t:'An XOR-join',correct:true},{t:'An AND-join',correct:false},{t:'An OR-split',correct:false},{t:'A sub-process boundary, no gateway',correct:false}],
+     explain:'Cổng gộp XOR nhận cả luồng ban đầu lẫn luồng quay lại; cổng gộp AND sẽ gây bế tắc vì chỉ một nhánh có token tại một thời điểm.'},
+    {id:'f4', q:'A message flow may connect:', qvi:'Luồng thông điệp có thể nối:',
+     options:[{t:'An activity in one pool to an activity in another pool',correct:true},{t:'Two activities in the same pool',correct:false},{t:'A gateway to a data store',correct:false},{t:'Two lanes of the same pool only',correct:false}],
+     explain:'Luồng thông điệp luôn vượt ranh giới giữa các bể, không bao giờ nối hai hoạt động trong cùng một bể.'},
+    {id:'f5', q:'When should a fragment of a model become a sub-process?', qvi:'Khi nào một đoạn mô hình nên trở thành quy trình con?',
+     options:[{t:'When it is a cohesive, reusable unit or the model is getting too large (~30+ flow objects)',correct:true},{t:'Every single task must always be its own sub-process',correct:false},{t:'Only when the activity involves a software system',correct:false},{t:'Never — BPMN discourages sub-processes',correct:false}],
+     explain:'Quy trình con dùng để giảm độ phức tạp (mô hình lớn) hoặc đóng gói một đơn vị nghiệp vụ có thể tái sử dụng (qua hoạt động gọi / mô hình quy trình toàn cục).'},
+  ];
+  finalQs.forEach(q=>container.appendChild(quizBlock(q)));
+}});
+
+/* ============================================================
+   5. APP SHELL / ROUTER
+   ============================================================ */
+const content = document.getElementById('content');
+const railNav = document.getElementById('railNav');
+const tabsNav = document.getElementById('tabsNav');
+
+SECTIONS.forEach((s,i)=>{
+  const rb = el('button',{'data-id':s.id});
+  rb.innerHTML = `<span class="n">${String(i).padStart(2,'0')}</span><span>${s.label}</span>`;
+  rb.onclick=()=>{ location.hash = s.id; };
+  railNav.appendChild(rb);
+
+  const tb = el('button',{'data-id':s.id}, s.label.split(' · ').pop());
+  tb.onclick=()=>{ location.hash = s.id; };
+  tabsNav.appendChild(tb);
+});
+
+function renderSection(id){
+  const sec = SECTIONS.find(s=>s.id===id) || SECTIONS[0];
+  content.innerHTML = '';
+  const head = el('div',{class:'section-head'});
+  head.appendChild(el('div',{class:'eyebrow'}, sec.id==='intro'?'Overview':sec.id==='summary'?'Wrap-up':'Lesson section'));
+  head.appendChild(el('h1',{}, sec.label.replace(/^Part \d+ · /,'').replace(/^Overview$/,'Essential Process Modeling with BPMN')));
+  head.appendChild(el('div',{class:'section-sub'}, sec.labelVI));
+  content.appendChild(head);
+  sec.build(content);
+  window.scrollTo(0,0);
+  [...railNav.children].forEach(b=>b.classList.toggle('active', b.dataset.id===sec.id));
+  [...tabsNav.children].forEach(b=>b.classList.toggle('active', b.dataset.id===sec.id));
+}
+
+window.addEventListener('hashchange', ()=>renderSection(location.hash.slice(1)));
+renderSection(location.hash.slice(1) || 'intro');
+updateProgress();
+</script>
